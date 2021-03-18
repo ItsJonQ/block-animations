@@ -4,12 +4,13 @@ import {
 	Button,
 	HStack,
 	Spacer,
+	Grid,
 	Heading,
 	Text,
 	VStack,
 	View,
 } from '@wp-g2/components';
-import { ui } from '@wp-g2/styles';
+import { ui, css } from '@wp-g2/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import React from 'react';
 import { v4 as uuid } from 'uuid';
@@ -21,19 +22,27 @@ import {
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
 
+const sortingStyles = css`
+	p {
+		background: white;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
+	}
+`;
+
 const DragHandle = sortableHandle(() => (
 	<View
 		css={[
 			{ cursor: 'grab', opacity: 0, transition: 'all 100ms linear' },
 			`&:active { cursor: grabbing; }`,
-			`*:hover > & { opacity: 1;}`,
+			`*:hover > div > & { opacity: 1;}`,
 		]}
 		className="dragHandle"
 	>
 		::
 	</View>
 ));
-const SortableItem = sortableElement(({ block, onRemove }) => {
+
+const SortableItem = sortableElement(({ block, onRemove, onTransform }) => {
 	return (
 		<motion.div
 			key={block.id}
@@ -48,13 +57,31 @@ const SortableItem = sortableElement(({ block, onRemove }) => {
 			transition={{ duration: 0.16 }}
 		>
 			<HStack alignment="top">
-				<DragHandle />
+				<VStack>
+					<DragHandle />
+					<View
+						className="dragHandle"
+						onClick={onRemove(block.id)}
+						css={[
+							{
+								cursor: 'pointer',
+								opacity: 0,
+								transition: 'all 100ms linear',
+							},
+							`*:hover > div > & { opacity: 1;}`,
+						]}
+					>
+						X
+					</View>
+				</VStack>
 				<Spacer>
 					<AnimationWrapper
 						id={block.id}
-						onRemove={onRemove(block.id)}
+						onTransform={onTransform(block.id)}
 					>
-						<ExampleBlock>{block.content}</ExampleBlock>
+						<ExampleBlock transform={block.transform}>
+							{block.content}
+						</ExampleBlock>
 					</AnimationWrapper>
 				</Spacer>
 			</HStack>
@@ -62,7 +89,7 @@ const SortableItem = sortableElement(({ block, onRemove }) => {
 	);
 });
 
-const SortableList = sortableContainer(({ items, onRemove }) => {
+const SortableList = sortableContainer(({ items, onRemove, onTransform }) => {
 	return (
 		<div>
 			<AnimatePresence initial={false}>
@@ -72,6 +99,7 @@ const SortableList = sortableContainer(({ items, onRemove }) => {
 						key={block.id}
 						block={block}
 						onRemove={onRemove}
+						onTransform={onTransform}
 					/>
 				))}
 			</AnimatePresence>
@@ -79,27 +107,111 @@ const SortableList = sortableContainer(({ items, onRemove }) => {
 	);
 });
 
-const ExampleBlock = ({ children, transform }) => (
-	<View css={{ fontSize: 16, lineHeight: 1.5, marginBottom: `1.5em` }}>
-		{children}
-	</View>
-);
+const ExampleBlock = ({ children, transform }) => {
+	const content = children.split('. ');
 
-const AnimationWrapper = ({ children, id, onRemove }) => {
+	return (
+		<View css={{ position: 'relative' }}>
+			<AnimatePresence initial={false}>
+				<motion.div layout transition={{ duration: 0.16 }}>
+					{transform ? (
+						<motion.div
+							key={'yes'}
+							initial={{ opacity: 0 }}
+							animate={{
+								scale: [0.95, 1.025, 1],
+								opacity: [0, 1],
+								transition: { delay: 0.08, duration: 0.16 },
+							}}
+							exit={{
+								position: 'absolute',
+								top: 0,
+								left: 0,
+								opacity: 0,
+								transition: {
+									delay: 0,
+								},
+							}}
+						>
+							<Grid
+								columns={3}
+								css={{
+									background: '#eee',
+									padding: 20,
+									borderRadius: 8,
+									marginBottom: `1.5em`,
+								}}
+							>
+								{content.map((c, i) => (
+									<View
+										as="p"
+										css={{
+											fontSize: 16,
+											lineHeight: 1.5,
+										}}
+										key={i}
+									>
+										{c}
+									</View>
+								))}
+							</Grid>
+						</motion.div>
+					) : (
+						<motion.div
+							key={'no'}
+							initial={{ opacity: 0 }}
+							animate={{
+								scale: [0.95, 1.025, 1],
+								opacity: [0, 1],
+								transition: { delay: 0.08, duration: 0.16 },
+							}}
+							exit={{
+								position: 'absolute',
+								top: 0,
+								left: 0,
+								opacity: 0,
+								transition: {
+									delay: 0,
+								},
+							}}
+						>
+							<View
+								as="p"
+								css={{
+									fontSize: 16,
+									lineHeight: 1.5,
+									marginBottom: `1.5em`,
+								}}
+							>
+								{children}
+							</View>
+						</motion.div>
+					)}
+				</motion.div>
+			</AnimatePresence>
+		</View>
+	);
+};
+
+const AnimationWrapper = ({ children, id, onRemove, onTransform }) => {
 	return (
 		<motion.div
-			onClick={onRemove}
 			key={id}
 			initial={{ scale: 0.95, opacity: 0 }}
 			animate={{ scale: [0.95, 1.025, 1], opacity: [0, 1] }}
 			transition={{ duration: 0.16 }}
+			onClick={onTransform}
 		>
 			{children}
 		</motion.div>
 	);
 };
 
-const createBlock = () => ({ id: uuid(), content: faker.lorem.paragraph() });
+const createBlock = () => ({
+	id: uuid(),
+	content: faker.lorem.paragraph(),
+	transform: false,
+});
 
 export default function Home() {
 	const [blocks, setBlocks] = React.useState([
@@ -114,6 +226,15 @@ export default function Home() {
 			return prev.filter((block) => block.id !== id);
 		});
 
+	const transformBlock = (id) => () =>
+		setBlocks((prev) => {
+			return prev.map((block) => {
+				if (block.id === id)
+					return { ...block, transform: !block.transform };
+				return block;
+			});
+		});
+
 	const onSortEnd = ({ oldIndex, newIndex }) => {
 		setBlocks((prev) => arrayMove(prev, oldIndex, newIndex));
 	};
@@ -126,7 +247,10 @@ export default function Home() {
 			</Head>
 			<Container width={720} css={{ marginTop: '10vh' }}>
 				<View>
-					<Text variant="muted">Click Paragraph to delete</Text>
+					<Text variant="muted">
+						Click Paragraph to <strong>transform</strong>. Click X
+						to delete.
+					</Text>
 				</View>
 				<Spacer mb={5} />
 				<VStack spacing={10}>
@@ -138,7 +262,9 @@ export default function Home() {
 						axis="y"
 						useDragHandle
 						items={blocks}
+						helperClass={sortingStyles}
 						onRemove={removeBlock}
+						onTransform={transformBlock}
 						onSortEnd={onSortEnd}
 					/>
 				</VStack>
