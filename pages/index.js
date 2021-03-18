@@ -28,6 +28,8 @@ const sortingStyles = css`
 	}
 `;
 
+const bounceScaleIn = [1, 1.01, 1];
+
 const DragHandle = sortableHandle(() => (
 	<View
 		css={[
@@ -115,15 +117,15 @@ const ExampleBlock = ({ children, transform }) => {
 	return (
 		<View css={{ position: 'relative' }}>
 			<AnimatePresence initial={false}>
-				<motion.div key="layout">
+				<motion.div key="layout" layout transition={{ duration: 0.12 }}>
 					{transform ? (
 						<motion.div
 							key={'yes'}
 							initial={{ opacity: 0 }}
 							animate={{
-								scale: [0.95, 1.025, 1],
+								scale: bounceScaleIn,
 								opacity: [0, 1],
-								transition: { delay: 0.08, duration: 0.16 },
+								transition: { delay: 0.06, duration: 0.16 },
 							}}
 							exit={{
 								position: 'absolute',
@@ -163,18 +165,9 @@ const ExampleBlock = ({ children, transform }) => {
 							key={'no'}
 							initial={{ opacity: 0 }}
 							animate={{
-								scale: [0.95, 1.025, 1],
+								scale: bounceScaleIn,
 								opacity: [0, 1],
-								transition: { delay: 0.08, duration: 0.16 },
-							}}
-							exit={{
-								position: 'absolute',
-								top: 0,
-								left: 0,
-								opacity: 0,
-								transition: {
-									delay: 0,
-								},
+								transition: { delay: 0.06, duration: 0.16 },
 							}}
 						>
 							<View
@@ -199,8 +192,8 @@ const AnimationWrapper = ({ children, id, onRemove, onTransform }) => {
 	return (
 		<motion.div
 			key={id}
-			initial={{ scale: 0.95, opacity: 0 }}
-			animate={{ scale: [0.95, 1.025, 1], opacity: [0, 1] }}
+			initial={{ opacity: 0 }}
+			animate={{ scale: bounceScaleIn, opacity: [0, 1] }}
 			transition={{ duration: 0.16 }}
 			onClick={onTransform}
 		>
