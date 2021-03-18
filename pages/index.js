@@ -23,9 +23,8 @@ import {
 import arrayMove from 'array-move';
 
 const sortingStyles = css`
-	p {
+	p:only-child {
 		background: white;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
 	}
 `;
 
@@ -107,13 +106,16 @@ const SortableList = sortableContainer(({ items, onRemove, onTransform }) => {
 	);
 });
 
+const forceNoAnimationTransition = css`
+	transform: none !important;
+`;
 const ExampleBlock = ({ children, transform }) => {
 	const content = children.split('. ');
 
 	return (
 		<View css={{ position: 'relative' }}>
 			<AnimatePresence initial={false}>
-				<motion.div layout transition={{ duration: 0.16 }}>
+				<motion.div key="layout">
 					{transform ? (
 						<motion.div
 							key={'yes'}
